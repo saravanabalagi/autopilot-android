@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items version="2" >
+
+    <item
+        jar="G:\Android\Android\app\build\intermediates\incremental-classes\debug\classes.jar"
+        jumboMode="false"
+        revision="23.0.1"
+        sha1="6d501a3cb5382bb733543fe4220131432e4e72a1">
+        <dex dex="G:\Android\Android\app\build\intermediates\pre-dexed\debug\classes_d14007c68b80893260a26ae619a044af28a1bab9.jar" />
+    </item>
+    <item
+        jar="G:\Android\Android\app\build\intermediates\incremental-runtime-classes\debug\instant-run.jar"
+        jumboMode="false"
+        revision="23.0.1"
+        sha1="2dded25b983646254131ac55b493dc266b14fef0">
+        <dex dex="G:\Android\Android\app\build\intermediates\pre-dexed\debug\instant-run_4e3cc40a8537383303a5ab85683e8d99aca385af.jar" />
+    </item>
+
+</items>

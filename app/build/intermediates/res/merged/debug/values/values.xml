@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AndroCopter</string>
+    <string name="connectToServer">Connect to server</string>
+    <string name="serverIpAdress">Server IP address:</string>
+    <string name="suspension">…</string>
+    <string name="title_activity_main">AndroCopter</string>
+    <style name="AppTheme" parent="android:Theme.Light"/>
+</resources>
