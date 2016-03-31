@@ -1,37 +1,92 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical" >
+    android:orientation="vertical">
 
-    <TextView
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/serverIpAdress"
-        android:labelFor="@+id/serverIpEditText" />
+        android:orientation="horizontal"
+        android:padding="20px">
 
-    <EditText
-        android:id="@+id/serverIpEditText"
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="10px"
+            android:text="USB Accessory:" />
+
+        <TextView
+            android:id="@+id/accessory_connection_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="10px"
+            android:text="Not Connected" />
+    </LinearLayout>
+
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" 
-        android:inputType="textUri" >
-
-        <requestFocus />
-    </EditText>
-
-    <CheckBox
-        android:id="@+id/connectToServerCheckBox"
-        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/connectToServer"
-        android:onClick="onConnectToServerCheckBoxToggled" />
-    
-        <com.romainflash.androcopter.CameraPreview
-        android:id="@+id/cameraSurface"
-        android:enabled="false"
-        android:layout_width="176px"
-        android:layout_height="144px"
-        android:focusable="true"
-        android:clickable="true" />
+        android:layout_marginBottom="-20dp"
+        android:layout_marginTop="-20dp"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:labelFor="@+id/serverIpEditText"
+            android:text="@string/serverIpAdress" />
+
+        <EditText
+            android:id="@+id/serverIpEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textUri">
+
+            <requestFocus />
+        </EditText>
+
+        <CheckBox
+            android:id="@+id/connectToServerCheckBox"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="onConnectToServerCheckBoxToggled"
+            android:text="@string/connectToServer" />
+
+        <com.example.autopilot.CameraPreview
+            android:id="@+id/cameraSurface"
+            android:layout_width="176px"
+            android:layout_height="144px"
+            android:clickable="true"
+            android:enabled="false"
+            android:focusable="true" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:id="@+id/textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="5dp"
+            android:text="Logs"
+            android:textColor="#ff0000" />
+
+        <ScrollView
+            android:id="@+id/scrollView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="5dp">
+
+            <TextView
+                android:id="@+id/logView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </ScrollView>
+    </LinearLayout>
 
 </LinearLayout>

@@ -2,18 +2,18 @@
 <items version="2" >
 
     <item
-        jar="G:\Android\Android\app\build\intermediates\incremental-classes\debug\classes.jar"
-        jumboMode="false"
-        revision="23.0.1"
-        sha1="6d501a3cb5382bb733543fe4220131432e4e72a1">
-        <dex dex="G:\Android\Android\app\build\intermediates\pre-dexed\debug\classes_d14007c68b80893260a26ae619a044af28a1bab9.jar" />
+        jar="E:\Android\AutoPilot\app\build\intermediates\incremental-runtime-classes\debug\instant-run.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="01d33e8ac3e219be622e37e993632526488ab475">
+        <dex dex="E:\Android\AutoPilot\app\build\intermediates\pre-dexed\debug\instant-run_f43f649a9b6c26818b2ad876e4ca1f90670704de.jar" />
     </item>
     <item
-        jar="G:\Android\Android\app\build\intermediates\incremental-runtime-classes\debug\instant-run.jar"
-        jumboMode="false"
-        revision="23.0.1"
-        sha1="2dded25b983646254131ac55b493dc266b14fef0">
-        <dex dex="G:\Android\Android\app\build\intermediates\pre-dexed\debug\instant-run_4e3cc40a8537383303a5ab85683e8d99aca385af.jar" />
+        jar="E:\Android\AutoPilot\app\build\intermediates\incremental-classes\debug\classes.jar"
+        jumboMode="true"
+        revision="23.0.2"
+        sha1="b7fa33989584fd4a40b833a76dd8e74414530729">
+        <dex dex="E:\Android\AutoPilot\app\build\intermediates\pre-dexed\debug\classes_80f294f6922bc9e9a9884452ace67cbb37e70356.jar" />
     </item>
 
 </items>
