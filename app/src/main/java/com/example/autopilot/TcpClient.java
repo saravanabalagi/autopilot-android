@@ -10,252 +10,177 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
-public class TcpClient
-{
-	public static final int SERVER_PORT = 7444;
-	public static final int MAX_SILENCE_PERIOD = 2000; // In [ms].
-	public static final long RECONNECT_DELAY = 100; // In [ms].
-	public static final int TX_BUFFER_SIZE = 10000;
-	
-	public static final int TYPE_TEXT = 0;
-	public static final int TYPE_VIDEO_FRAME = 1;
-	public static final int TYPE_LOG = 2;
-	public static final int TYPE_CURRENT_STATE = 3;
-	public static final int TYPE_PHOTO = 4;
+public class TcpClient {
+    public static final int SERVER_PORT = 7444;
+    public static final int MAX_SILENCE_PERIOD = 2000; // In [ms].
+    public static final long RECONNECT_DELAY = 100; // In [ms].
+    public static final int TX_BUFFER_SIZE = 10000;
 
+    public static final int TYPE_TEXT = 0;
+    public static final int TYPE_VIDEO_FRAME = 1;
+    public static final int TYPE_LOG = 2;
+    public static final int TYPE_CURRENT_STATE = 3;
+    public static final int TYPE_PHOTO = 4;
+    private byte[] txHeaderBuffer;
+    private TcpMessageReceiver tcpReceiver;
+    private ConnectThread connectThread;
+    private volatile boolean currentlySending;
 
-	pub TcpClient(TcpMessageReceiver receiver)
-	{
-		this.tcpReceiver = receiver;
+    TcpClient(TcpMessageReceiver receiver) {
+        this.tcpReceiver = receiver;
+        txHeaderBuffer = new byte[5];
+        currentlySending = false;
+    }
 
-		txHeaderBuffer = new byte[5];
+    void start(String serverIp) {
+        // Open the socket server.
+        if (connectThread != null && connectThread.isAlive())
+            connectThread.requestStop();
 
-		currentlySending = false;
-	}
+        connectThread = new ConnectThread(serverIp);
+        connectThread.start();
+    }
 
-	pub
-	void start(String serverIp)
-	{
-		// Open the socket server.
-		if(connectThread != null && connectThread.isAlive())
-			connectThread.requestStop();
+    void stop() {
+        if (connectThread != null)
+            connectThread.requestStop();
+    }
 
-		connectThread = new ConnectThread(serverIp);
-		connectThread.start();
-	}
+    public void sendMessage(byte[] message, int type) {
+        if (connectThread != null)
+            connectThread.sendMessage(message, type);
+    }
 
-	pub
-	void stop()
-	{
-		if(connectThread != null)
-			connectThread.requestStop();
-	}
+    public void sendMessageNowOrSkip(byte[] message, int type) {
+        if (!currentlySending && (connectThread != null))
+            connectThread.sendMessage(message, type);
+    }
 
-	pub
-	lic
+    public boolean isConnected() { return connectThread != null && connectThread.isConnected(); }
+    public interface TcpMessageReceiver {
+        void onConnectionEstablished();
+        void onConnectionLost();
+        void onMessageReceived(String message);
+    }
 
-	void sendMessage(byte[] message, int type) {
-		if (connectThread != null)
-			connectThread.sendMessage(message, type);
-	}
+    private class ConnectThread extends Thread {
+        private volatile boolean again, previouslyConnected;
+        private Socket socket;
+        private String serverIp;
 
-	ri
-	lic
+        public ConnectThread(String serverIp) {
+            this.serverIp = serverIp;
+        }
 
-	void sendMessageNowOrSkip(byte[] message, int type) {
-		if (!currentlySending && (connectThread != null))
-			connectThread.sendMessage(message, type);
-	}
+        public void run() {
+            again = true;
+            previouslyConnected = false;
 
-	vate
-	byte[] txHeaderBuffer;
-	pri
-	lic
+            while (again) {
+                // Setup a UDP server socket.
+                if (socket == null || socket.isClosed()) {
+                    try {
+                        socket = new Socket(serverIp, SERVER_PORT);
+                        socket.setSoTimeout(0); // Inifinite time for reading.
+                        socket.setTcpNoDelay(true);
 
-	boolean isConnected() {
-		if (connectThread != null)
-			return connectThread.isConnected();
-		else
-			return false;
-	}
+                        tcpReceiver.onConnectionEstablished();
+                        previouslyConnected = true;
+                    } catch (UnknownHostException e) { Log.w("AndroCopter", "Can't reach the server!"); }
+                    catch (IOException e) { Log.w("AndroCopter", "Error when creating the socket."); }
+                }
 
-	pvate TcpMessageReceiver
-	tcpReceiver;
-	prilic
+                // Get the incomming messages.
+                if (socket != null && socket.isConnected()) {
+                    try {
+                        BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-	interface TcpMessageReceiver {
-		void onConnectionEstablished();
+                        while (true) {
+                            // Block until a message arrives.
+                            String inMessage = in.readLine();
 
-		void onConnectionLost();
+                            if (inMessage != null) {
+                                // Read the message.
+                                tcpReceiver.onMessageReceived(inMessage);
+                            } else // Stream has ended, so the socket disconnected.
+                                break;
+                        }
+                    } catch (IOException e) {
+                        // Nothing to do, we will reconnect after.
+                    }
 
-		void onMessageReceived(String message);
-	}
+                    if (socket != null) {
+                        try {
+                            socket.close();
+                        } catch (IOException e1) {
+                            e1.printStackTrace();
+                        }
+                    }
+                }
 
-	vate ConnectThread
-	connectThread;
-	pri
-	private class ConnectThread extends Thread
-	{
-		private volatile boolean again, previouslyConnected;
-		private Socket socket;
-		private String serverIp;
+                // We reach this point because of a disconnection, or if we are
+                // unable to establish a connection.
+                // Notify the receiver in the first case.
+                if (previouslyConnected) {
+                    tcpReceiver.onConnectionLost();
+                    previouslyConnected = false;
+                }
 
-		public ConnectThread(String serverIp)
-		{
-			this.serverIp = serverIp;
-		}
+                // Try to reconnect after some time.
+                SystemClock.sleep(RECONNECT_DELAY);
+            }
+        }
 
-		public void run()
-		{
-			again = true;
-			previouslyConnected = false;
+        public synchronized void requestStop() {
+            again = false;
 
-			while(again)
-			{
-				// Setup a UDP server socket.
-				if(socket == null || socket.isClosed())
-				{
-					try
-					{
-						socket = new Socket(serverIp, SERVER_PORT);
-						socket.setSoTimeout(0); // Inifinite time for reading.
-						socket.setTcpNoDelay(true);
+            if (socket != null) {
+                try {
+                    socket.close();
+                    socket = null;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
 
-						tcpReceiver.onConnectionEstablished();
-						previouslyConnected = true;
-					}
-					catch (UnknownHostException e)
-					{
-						Log.w("AndroCopter", "Can't reach the server!");
-					}
-					catch (IOException e)
-					{
-						Log.w("AndroCopter", "Error when creating the socket.");
-					}
-				}
+        public synchronized void sendMessage(byte[] message, int type) {
+            if (socket == null || !socket.isConnected())
+                return;
 
-				// Get the incomming messages.
-				if(socket != null && socket.isConnected())
-				{
-					try
-					{
-						BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            currentlySending = true;
 
-						while(true)
-						{
-							// Block until a message arrives.
-							String inMessage = in.readLine();
+            int messageSize = message.length;
+            int messageWithTypeSize = messageSize + 1;
 
-							if(inMessage != null)
-							{
-					            // Read the message.
-								tcpReceiver.onMessageReceived(inMessage);
-							}
-							else // Stream has ended, so the socket disconnected.
-								break;
-						}
-					}
-					catch (IOException e)
-					{
-						// Nothing to do, we will reconnect after.
-					}
+            // The message has 3 parts :
+            // -the 4 first bytes are the size of the rest of the message.
+            // -the next byte is the type of the message.
+            // -the remaining bytes are the useful part.
+            //txBuffer = new byte[4 + 1 + messageSize];
+            txHeaderBuffer[0] = (byte) (messageWithTypeSize >> 24); // "Rest of the
+            txHeaderBuffer[1] = (byte) (messageWithTypeSize >> 16); // message"
+            txHeaderBuffer[2] = (byte) (messageWithTypeSize >> 8);  // length.
+            txHeaderBuffer[3] = (byte) messageWithTypeSize;         //
+            txHeaderBuffer[4] = (byte) type; // Type of the message.
 
-					if(socket != null)
-					{
-						try
-						{
-							socket.close();
-						}
-						catch (IOException e1)
-						{
-							e1.printStackTrace();
-						}
-					}
-				}
+            sendRawBytes(txHeaderBuffer); // Send the message header.
+            sendRawBytes(message); // Send the actual content of the message.
 
-				// We reach this point because of a disconnection, or if we are
-				// unable to establish a connection.
-				// Notify the receiver in the first case.
-				if(previouslyConnected)
-				{
-					tcpReceiver.onConnectionLost();
-					previouslyConnected = false;
-				}
+            currentlySending = false;
+        }
 
-				// Try to reconnect after some time.
-				SystemClock.sleep(RECONNECT_DELAY);
-			}
-		}
+        public boolean isConnected() { return socket != null && socket.isConnected(); }
 
-		public synchronized void requestStop()
-		{
-			again = false;
-
-			if(socket != null)
-	    	{
-	    		try
-				{
-					socket.close();
-					socket = null;
-				}
-	    		catch (IOException e)
-				{
-					e.printStackTrace();
-				}
-	    	}
-		}
-
-		public synchronized void sendMessage(byte[] message, int type)
-		{
-			if(socket == null || !socket.isConnected())
-				return;
-
-			currentlySending = true;
-
-			int messageSize = message.length;
-			int messageWithTypeSize = messageSize + 1;
-
-			// The message has 3 parts :
-	    	// -the 4 first bytes are the size of the rest of the message.
-	    	// -the next byte is the type of the message.
-	    	// -the remaining bytes are the useful part.
-	    	//txBuffer = new byte[4 + 1 + messageSize];
-			txHeaderBuffer[0] = (byte) (messageWithTypeSize >> 24); // "Rest of the
-			txHeaderBuffer[1] = (byte) (messageWithTypeSize >> 16); // message"
-			txHeaderBuffer[2] = (byte) (messageWithTypeSize >> 8);  // length.
-			txHeaderBuffer[3] = (byte) messageWithTypeSize;         //
-			txHeaderBuffer[4] = (byte)type; // Type of the message.
-
-			sendRawBytes(txHeaderBuffer); // Send the message header.
-			sendRawBytes(message); // Send the actual content of the message.
-
-			currentlySending = false;
-		}
-
-		public boolean isConnected()
-		{
-			if(socket == null)
-				return false;
-			else
-				return socket.isConnected();
-		}
-
-		private void sendRawBytes(byte[] bytes)
-		{
-			try
-			{
-				OutputStream out = socket.getOutputStream();
-	            out.write(bytes);
-	            out.flush();
-			}
-			catch(IOException e)
-			{
-				Log.e("NetTest", "Can't send the message!");
-				e.printStackTrace();
-			}
-		}
-	}
-
-	vate
-	volatile boolean currentlySending;
+        private void sendRawBytes(byte[] bytes) {
+            try {
+                OutputStream out = socket.getOutputStream();
+                out.write(bytes);
+                out.flush();
+            } catch (IOException e) {
+                Log.e("NetTest", "Can't send the message!");
+                e.printStackTrace();
+            }
+        }
+    }
 }
